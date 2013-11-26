@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// The hammertime encoder will either send min(buf, 127) bytes as written
-// via Write, or send 127 bytes of chaff.
+// Hammertime encoder. Always sends 127 bytes of data, and will pad
+// short writes (< 127 bytes) with chaff.
 type Encoder struct {
 	wr     io.Writer
 	wg     sync.WaitGroup
@@ -53,6 +53,7 @@ func NewEncoder(wr io.Writer, tick <-chan time.Time) *Encoder {
 	return enc
 }
 
+// Write some data, padded with chaff if len(p) is not divisible by 127.
 func (enc *Encoder) Write(p []byte) (n int, err error) {
 	for _, f := range makeframes(p) {
 		enc.in <- f

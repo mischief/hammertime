@@ -58,7 +58,7 @@ func TestMakeFrameShort(t *testing.T) {
 
 	cmpchaff := make([]byte, maxframe-shortlen)
 	for i := range cmpchaff {
-		cmpchaff[i] = chaffbyte
+		cmpchaff[i] = ChaffByte
 	}
 
 	if !bytes.Equal(frames[0].data[shortlen:], cmpchaff) {

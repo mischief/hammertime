@@ -10,8 +10,8 @@ type frame struct {
 }
 
 var (
-  chaffbyte = byte('~')
-	chaff frame
+	ChaffByte = byte('~')
+	chaff     frame
 )
 
 // setup crap frame
@@ -19,7 +19,7 @@ func init() {
 	chaff = frame{length: 0x0, data: make([]byte, maxframe)}
 	for i := range chaff.data {
 		// XXX: use random data?
-		chaff.data[i] = chaffbyte
+		chaff.data[i] = ChaffByte
 	}
 }
 

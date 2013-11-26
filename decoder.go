@@ -4,11 +4,11 @@ import (
 	"io"
 )
 
-type DecState int
+type decState int
 
 const (
-	DecHdr DecState = iota
-	DecFrame
+	decHdr decState = iota
+	decFrame
 )
 
 // Hammertime decoder.
@@ -22,7 +22,7 @@ type Decoder struct {
 	gotlen uint8
 
 	// state, getting header or gettin frame content
-	state DecState
+	state decState
 }
 
 func NewDecoder(wr io.Writer) *Decoder {
@@ -39,11 +39,11 @@ func NewDecoder(wr io.Writer) *Decoder {
 func (dec *Decoder) Write(p []byte) (n int, err error) {
 	for _, b := range p {
 		switch dec.state {
-		case DecHdr:
+		case decHdr:
 			dec.compliance.length = b & 127
 			dec.gotlen = 0
-			dec.state = DecFrame
-		case DecFrame:
+			dec.state = decFrame
+		case decFrame:
 			if int(dec.gotlen) < cap(dec.compliance.data) {
 				if dec.gotlen < dec.compliance.length {
 					dec.compliance.data[dec.gotlen] = b
@@ -59,7 +59,7 @@ func (dec *Decoder) Write(p []byte) (n int, err error) {
 			}
 
 			if int(dec.gotlen) == cap(dec.compliance.data) {
-				dec.state = DecHdr
+				dec.state = decHdr
 			}
 
 		}
@@ -101,6 +101,8 @@ func (dec *Decoder) Write(p []byte) (n int, err error) {
 	*/
 }
 
+// Close the decoder, and the underlying writer if it is an
+// io.Closer.
 func (dec *Decoder) Close() error {
 	if closer, ok := dec.wr.(io.Closer); ok {
 		return closer.Close()
