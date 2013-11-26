@@ -35,7 +35,6 @@ func NewDecoder(wr io.Writer) *Decoder {
 }
 
 // Strip chaff from a hammertime stream.
-// FIXME: i dont work
 func (dec *Decoder) Write(p []byte) (n int, err error) {
 	for _, b := range p {
 		switch dec.state {
