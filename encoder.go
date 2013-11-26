@@ -2,33 +2,19 @@
 package hammertime
 
 import (
-	"bytes"
 	"encoding/binary"
 	"io"
-	"math"
 	"sync"
 	"time"
 )
-
-var (
-	crap []byte
-)
-
-// setup crap slice
-func init() {
-	crap = make([]byte, 127)
-	for i := range crap {
-		crap[i] = 0xFF
-	}
-}
 
 // The hammertime encoder will either send min(buf, 127) bytes as written
 // via Write, or send 127 bytes of chaff.
 type Encoder struct {
 	wr     io.Writer
 	wg     sync.WaitGroup
-	in     chan []byte
-	out    chan []byte
+	in     chan frame
+	out    chan frame
 	tick   <-chan time.Time
 	errors chan error
 }
@@ -38,8 +24,8 @@ type Encoder struct {
 func NewEncoder(wr io.Writer, tick <-chan time.Time) *Encoder {
 	enc := &Encoder{
 		wr:     wr,
-		in:     make(chan []byte, 1),
-		out:    make(chan []byte, 1),
+		in:     make(chan frame, 1),
+		out:    make(chan frame, 1),
 		tick:   tick,
 		errors: make(chan error, 1),
 	}
@@ -50,38 +36,46 @@ func NewEncoder(wr io.Writer, tick <-chan time.Time) *Encoder {
 		defer enc.wg.Done()
 	loop:
 		for {
-			select {
-			case buf, ok := <-enc.out:
-				if !ok {
-					break loop
-				}
-				if _, err := enc.wr.Write(buf); err != nil {
-					// TODO: handle error better
-					enc.errors <- err
-				}
+			buf, ok := <-enc.out
+			if !ok {
+				break loop
 			}
+
+			// TODO: check errors while writing
+			binary.Write(enc.wr, binary.LittleEndian, buf.length)
+			enc.wr.Write(buf.data)
 		}
 	}()
 
 	enc.wg.Add(1)
-	go enc.run()
+	go enc.encode()
 
 	return enc
 }
 
 func (enc *Encoder) Write(p []byte) (n int, err error) {
-	enc.in <- p
+	for _, f := range makeframes(p) {
+		enc.in <- f
+	}
+
 	return len(p), nil
 }
 
+// Close the encoder. Cleans up any goroutines spawned and closes
+// the underlying io.Writer if it is a io.Closer.
 func (enc *Encoder) Close() error {
 	close(enc.in)
 	enc.wg.Wait()
+	if closer, ok := enc.wr.(io.Closer); ok {
+		return closer.Close()
+	}
 	return nil
 }
 
-func (enc *Encoder) run() {
-	var data []byte
+// Encode will run asynchronously to whoever is writing to us,
+// adding chaff whenever nothing is on the in channel.
+func (enc *Encoder) encode() {
+	var fr *frame
 
 	defer enc.wg.Done()
 
@@ -93,19 +87,14 @@ loop:
 			if !ok {
 				break loop
 			}
-			data = append(data, buf...)
+
+			fr = &buf
 		default:
-			data = append(data, crap...)
+			fr = &chaff
 		}
 
-		for len(data) > 0 {
-			encoded := new(bytes.Buffer)
-			framesize := uint8(math.Min(float64(len(data)), float64(127)))
-			binary.Write(encoded, binary.LittleEndian, framesize)
-			encoded.Write(data[:framesize])
-			data = data[framesize:]
-			enc.out <- encoded.Bytes()
-		}
+		enc.out <- *fr
+
 	}
 	close(enc.out)
 }
