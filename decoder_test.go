@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"testing"
 	"time"
-	/*
-		"bytes"
-		"time"
-	*/)
+)
 
 func TestDecoder(t *testing.T) {
 	testdata := []byte("hammertime")

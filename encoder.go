@@ -1,4 +1,3 @@
-// TODO: check for errors and stuff
 package hammertime
 
 import (

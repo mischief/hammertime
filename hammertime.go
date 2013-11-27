@@ -1,3 +1,9 @@
+// Hammertime: buffered fixed-length obfuscation of data streams.
+//
+// Inspiration: hammertime in https://github.com/leif/bananaphone and
+// BuFLO in http://pages.cs.wisc.edu/~rist/papers/trafanal.pdf
+//
+// TODO: check for errors and stuff
 package hammertime
 
 const (
