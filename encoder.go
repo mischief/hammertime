@@ -23,8 +23,8 @@ type Encoder struct {
 func NewEncoder(wr io.Writer, tick <-chan time.Time) *Encoder {
 	enc := &Encoder{
 		wr:     wr,
-		in:     make(chan frame, 1),
-		out:    make(chan frame, 1),
+		in:     make(chan frame),
+		out:    make(chan frame),
 		tick:   tick,
 		errors: make(chan error, 1),
 	}
@@ -62,13 +62,10 @@ func (enc *Encoder) Write(p []byte) (n int, err error) {
 }
 
 // Close the encoder. Cleans up any goroutines spawned and closes
-// the underlying io.Writer if it is a io.Closer.
+// channels.
 func (enc *Encoder) Close() error {
 	close(enc.in)
 	enc.wg.Wait()
-	if closer, ok := enc.wr.(io.Closer); ok {
-		return closer.Close()
-	}
 	return nil
 }
 
